@@ -7,29 +7,48 @@ $.getJSON("/articles", function(data) {
       "<p data-id='" + data[i]._id + 
       "'>" + data[i].title + 
       "<br />" + data[i].link + "</p>" +
-      "<button data-title='" + data[i].title + "' data-link='" + data[i].link +"' id='save-article'>SAVE</button>"
+      "<button data-id='" + data[i]._id + "' id='save-article'>SAVE</button>"
       );
   }
 });
 
-// When you click the savenote button
-$(document).on("click", "#save-article", function() {
-  // Grab the id associated with the article from the save button
-  var article = {
-    title : $(this).attr("data-title"),
-    link : $(this).attr("data-link"),
-    note : null
-  }
-  // Run a POST request to change the note, using what's entered in the inputs
+$(document).on("click", "scrape-button", function() {
   $.ajax({
-    method: "POST",
-    url: "/saved/",
-    data: article
+    method: "GET",
+    url: "/scrape/",
+    data: null
+  }).then(function(data) {
+    console.log(data);
   })
-
-
-
 });
+
+$(document).on("click", "clear-button", function() {
+  $.ajax({
+    method: "post",
+    url: "/clear/",
+    data: null
+  }).then(function(data) {
+    console.log(data);
+  })
+})
+
+// When you click the save-article button
+$(document).on("click", "#save-article", function() {
+   // Grab the id associated with the article from the submit button
+  var thisId = $(this).attr("data-id");
+
+  // Run a POST request to change saved : true
+  $.ajax({
+    method: "Put",
+    url: "/saved/" + thisId,
+    data: thisId
+  })
+    // With that done
+    .then(function(data) {
+      // Log the response
+      console.log(data);
+    });
+  });
 
 // Whenever someone clicks a p tag
 $(document).on("click", "p", function() {
@@ -57,6 +76,10 @@ $(document).on("click", "p", function() {
 
       // If there's a note in the article
       if (data.note) {
+        // for (i=0;i<data.note.length;i++) {
+        //   $("#notes").append("<h4>" + data.note[i].title + "</h4><p>" + data.note[i].body + "</p>")
+        // }
+        
         // Place the title of the note in the title input
         $("#titleinput").val(data.note.title);
         // Place the body of the note in the body textarea

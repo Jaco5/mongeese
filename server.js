@@ -36,10 +36,10 @@ mongoose.connect(MONGODB_URI);
 // A GET route for scraping the echoJS website
 app.get("/scrape", function(req, res) {
   // First, we grab the body of the html with axios
-  axios.get("http://www.echojs.com/").then(function(response) {
+  axios.get("https://politicalwire.com//").then(function(response) {
     // Then, we load that into cheerio and save it to $ for a shorthand selector
     var $ = cheerio.load(response.data);
-
+    
     // Now, we grab every h2 within an article tag, and do the following:
     $("article h2").each(function(i, element) {
       // Save an empty result object
@@ -52,6 +52,7 @@ app.get("/scrape", function(req, res) {
       result.link = $(this)
         .children("a")
         .attr("href");
+      result.saved = false;
 
       // Create a new Article using the `result` object built from scraping
       db.Article.create(result)
@@ -66,12 +67,14 @@ app.get("/scrape", function(req, res) {
     });
 
     // If we were able to successfully scrape and save an Article, send a message to the client
-    res.send("Scrape Complete");
+    res.render("index.html");
   });
 });
 
+
 // Route for getting all Articles from the db
 app.get("/articles", function(req, res) {
+  
   // Grab every document in the Articles collection
   db.Article.find({})
     .then(function(dbArticle) {
@@ -108,7 +111,7 @@ app.post("/articles/:id", function(req, res) {
       // If a Note was created successfully, find one Article with an `_id` equal to `req.params.id`. Update the Article to be associated with the new Note
       // { new: true } tells the query that we want it to return the updated User -- it returns the original by default
       // Since our mongoose query returns a promise, we can chain another `.then` which receives the result of the query
-      return db.Article.findOneAndUpdate({ _id: req.params.id }, { note: dbNote._id }, { new: true });
+      return db.Article.find({ _id: req.params.id }, {}, { new: true });
     })
     .then(function(dbArticle) {
       // If we were able to successfully update an Article, send it back to the client
@@ -119,16 +122,30 @@ app.post("/articles/:id", function(req, res) {
       res.json(err);
     });
 });
-
-app.post("/saved/", function(req, res) {
+//change an articles saved value to true
+app.put("/saved/:id", function(req, res) {
   console.log(req.body);
-  db.SavedArticle.create(req.body)
-  .then(function(dbSave) {
-    console.log(dbSave)
+  db.Article.findOneAndUpdate(
+    { _id : req.params.id},
+    {$set : { saved : true}}
+    ).then(function(dbSaved) {
+    res.json(dbSaved)
   }).catch(function(err) {
     res.json(err)
   })
-})
+});
+
+app.post("/clear/", function(req, res) {
+  console.log(req.body);
+  db.Article.deleteMany(
+    { saved : false } 
+   ).then(function() {
+     res.render("index.html")
+    
+ }).catch(function(err){
+   res.json(err)
+ })
+});
 
 // Start the server
 app.listen(PORT, function() {
